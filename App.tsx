@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { PricePoint, UserState, DevTreasury, TabType, BinaryTrade } from './types';
 import { 
@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<UserState>(() => {
     const saved = localStorage.getItem('g_coin_user');
     return saved ? JSON.parse(saved) : {
-      usdBalance: 1000.00, // Higher starting balance for "real money" feel
+      usdBalance: 1000.00,
       gCoinBalance: 0,
       isSubscribed: false,
       subscriptionExpiry: null,
@@ -43,11 +43,11 @@ const App: React.FC = () => {
   const [currentPrice, setCurrentPrice] = useState(INITIAL_GCOIN_PRICE);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
 
-  // Market Price Simulation (More volatile for trading)
+  // Market Price Simulation
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentPrice(prev => {
-        const volatility = 0.008; // Increased volatility
+        const volatility = 0.008;
         const change = (Math.random() - 0.5) * prev * volatility;
         const next = Math.max(0.1, prev + change);
         setPriceHistory(history => {
@@ -56,11 +56,11 @@ const App: React.FC = () => {
         });
         return next;
       });
-    }, 1000); // Faster updates for trading feel
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Settlement Logic for Binary Options
+  // Settlement Logic
   useEffect(() => {
     const checkTrades = setInterval(() => {
       const now = Date.now();
@@ -94,7 +94,7 @@ const App: React.FC = () => {
     return () => clearInterval(checkTrades);
   }, [user.tradeHistory, currentPrice]);
 
-  // Mining Simulation
+  // Mining Persistence
   useEffect(() => {
     let miningInterval: number | undefined;
     if (user.isSubscribed) {
@@ -109,6 +109,15 @@ const App: React.FC = () => {
     return () => clearInterval(miningInterval);
   }, [user.isSubscribed]);
 
+  // Save state
+  useEffect(() => {
+    localStorage.setItem('g_coin_user', JSON.stringify(user));
+  }, [user]);
+
+  useEffect(() => {
+    localStorage.setItem('g_coin_treasury', JSON.stringify(treasury));
+  }, [treasury]);
+
   // --- Handlers ---
   const handleOpenTrade = useCallback((amount: number, type: 'higher' | 'lower', duration: number) => {
     if (user.usdBalance >= amount) {
@@ -120,7 +129,7 @@ const App: React.FC = () => {
         startTime: Date.now(),
         duration,
         status: 'open',
-        payout: amount * 1.90 // 90% profit
+        payout: amount * 1.90
       };
 
       setUser(prev => ({
@@ -184,14 +193,14 @@ const App: React.FC = () => {
   }, [treasury.totalRevenue]);
 
   return (
-    <div className="min-h-screen flex flex-col max-w-6xl mx-auto px-4 md:px-0 bg-zinc-950 pb-24 lg:pb-0 lg:pt-8">
+    <div className="min-h-screen flex flex-col max-w-6xl mx-auto px-4 md:px-0 pb-24 lg:pb-8 lg:pt-8 animate-in fade-in duration-700">
       <Header 
         usdBalance={user.usdBalance} 
         gCoinBalance={user.gCoinBalance} 
         currentPrice={currentPrice} 
       />
 
-      <main className="flex-1 overflow-y-auto mt-6 px-2">
+      <main className="flex-1 mt-6 px-2 tab-transition">
         {activeTab === 'market' && (
           <Marketplace 
             currentPrice={currentPrice} 
@@ -221,13 +230,13 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 p-3 lg:relative lg:bg-transparent lg:border-none lg:p-6 lg:flex lg:justify-center">
-        <div className="flex justify-around lg:gap-8 max-w-2xl mx-auto w-full glass rounded-2xl p-2">
+      <nav className="fixed bottom-4 left-4 right-4 z-50 lg:relative lg:bottom-auto lg:left-auto lg:right-auto lg:bg-transparent lg:mt-8">
+        <div className="max-w-xl mx-auto glass rounded-2xl p-2 flex justify-around shadow-2xl">
           <NavItem 
             active={activeTab === 'market'} 
             onClick={() => setActiveTab('market')} 
             icon={ICONS.MARKET} 
-            label="Trade" 
+            label="Terminal" 
           />
           <NavItem 
             active={activeTab === 'wallet'} 
@@ -258,10 +267,10 @@ const NavItem: React.FC<{ active: boolean; onClick: () => void; icon: string; la
 }) => (
   <button 
     onClick={onClick}
-    className={`flex flex-col items-center transition-all px-4 py-2 rounded-xl ${active ? 'bg-amber-500/10 text-amber-500 scale-105' : 'text-zinc-500 hover:text-zinc-300'}`}
+    className={`flex flex-col items-center transition-all px-6 py-2 rounded-xl ${active ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'}`}
   >
-    <span className="text-xl mb-1">{icon}</span>
-    <span className="text-xs font-semibold uppercase tracking-tighter">{label}</span>
+    <span className="text-xl mb-0.5">{icon}</span>
+    <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
   </button>
 );
 

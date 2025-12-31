@@ -14,6 +14,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ currentPrice, priceHistory, t
   const [tradeAmount, setTradeAmount] = useState<string>('100');
   const [tradeTime, setTradeTime] = useState<number>(30); // seconds
   const [notification, setNotification] = useState<{ text: string, type: 'success' | 'error' | 'win' | 'loss' } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'won' | 'lost'>('all');
 
   const profitPercent = 90;
   
@@ -37,6 +38,12 @@ const Marketplace: React.FC<MarketplaceProps> = ({ currentPrice, priceHistory, t
     }
     setTimeout(() => setNotification(null), 2000);
   };
+
+  // Filtered trade history
+  const filteredTrades = useMemo(() => {
+    if (statusFilter === 'all') return tradeHistory;
+    return tradeHistory.filter(t => t.status === statusFilter);
+  }, [tradeHistory, statusFilter]);
 
   // Watch for recent results to show results popups
   useEffect(() => {
@@ -126,31 +133,53 @@ const Marketplace: React.FC<MarketplaceProps> = ({ currentPrice, priceHistory, t
 
           {/* Trade History Bar */}
           <div className="glass rounded-2xl p-4 overflow-hidden border border-zinc-800/40">
-            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4 px-2">Recent Settlements</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-2">
+              <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Recent Settlements</h3>
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-hide py-1">
+                {(['all', 'open', 'won', 'lost'] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setStatusFilter(f)}
+                    className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-tighter transition-all border ${
+                      statusFilter === f 
+                        ? 'bg-amber-500 border-amber-400 text-black' 
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
             <div className="flex gap-4 overflow-x-auto pb-2 px-2 scrollbar-hide">
-              {tradeHistory.map(t => (
-                <div key={t.id} className={`flex-shrink-0 flex items-center gap-3 px-4 py-2 rounded-xl border ${
-                  t.status === 'won' ? 'bg-emerald-500/10 border-emerald-500/20' : 
-                  t.status === 'lost' ? 'bg-rose-500/10 border-rose-500/20' : 
-                  'bg-zinc-800/50 border-zinc-700'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full ${t.status === 'won' ? 'bg-emerald-500' : t.status === 'lost' ? 'bg-rose-500' : 'bg-amber-500 animate-pulse'}`}></div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold uppercase tracking-tighter text-zinc-400">{t.type} order</span>
-                    <span className="text-xs font-mono font-bold">${t.amount}</span>
-                  </div>
-                  {t.status === 'open' && (
-                    <div className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                      {Math.max(0, Math.ceil((t.startTime + t.duration * 1000 - Date.now()) / 1000))}s
+              {filteredTrades.length === 0 ? (
+                <div className="text-[10px] text-zinc-600 font-bold uppercase py-4 px-2">No {statusFilter === 'all' ? '' : statusFilter} trades found</div>
+              ) : (
+                filteredTrades.map(t => (
+                  <div key={t.id} className={`flex-shrink-0 flex items-center gap-3 px-4 py-2 rounded-xl border ${
+                    t.status === 'won' ? 'bg-emerald-500/10 border-emerald-500/20' : 
+                    t.status === 'lost' ? 'bg-rose-500/10 border-rose-500/20' : 
+                    'bg-zinc-800/50 border-zinc-700'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${t.status === 'won' ? 'bg-emerald-500' : t.status === 'lost' ? 'bg-rose-500' : 'bg-amber-500 animate-pulse'}`}></div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-tighter text-zinc-400">{t.type} order</span>
+                      <span className="text-xs font-mono font-bold">${t.amount}</span>
                     </div>
-                  )}
-                  {t.status !== 'open' && (
-                    <span className={`text-[10px] font-bold ${t.status === 'won' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {t.status === 'won' ? `+$${t.payout.toFixed(0)}` : '-$'+t.amount}
-                    </span>
-                  )}
-                </div>
-              ))}
+                    {t.status === 'open' && (
+                      <div className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                        {Math.max(0, Math.ceil((t.startTime + t.duration * 1000 - Date.now()) / 1000))}s
+                      </div>
+                    )}
+                    {t.status !== 'open' && (
+                      <span className={`text-[10px] font-bold ${t.status === 'won' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {t.status === 'won' ? `+$${t.payout.toFixed(0)}` : '-$'+t.amount}
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
